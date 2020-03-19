@@ -1,36 +1,50 @@
-//
-//  MarketEvents.h
-//  Matching_Simulation
-//
-//  Created by SiranWang on 3/19/20.
-//  Copyright © 2020 SiranWang. All rights reserved.
-//
+#pragma once
 
-#ifndef MarketEvents_h
-#define MarketEvents_h
-
-#include "OrderBook.h"
+#include <vector>
+#include "MarketListener.h"
 
 namespace Matching {
 
-class MarketEvents {
+class Event {
 public:
-    
-    //An event indicating that an order book has changed.
-    //@param book the order book
-    //@param bbo true if the best bid and offer (BBO) has changed, otherwise false
-    virtual Update(OrderBook* orderBook, bool bbo);
-    
-    
-    // An event indicating that a trade has taken place.
-    // @param book the order book
-    // @param side the side of the incoming order
-    // @param price the trade price
-    // @param size the trade size
-    virtual Trade(OrderBook* orderBook, Side side, long price, long size);
+	Event() {}
+};
 
+
+
+class UpdateEvent : public Event {
+public:
+	UpdateEvent(long instrument, bool bbo) :
+	instrument_(instrument), bbo_(bbo) {}
+	long instrument_;
+	bool bbo_;
+};
+
+class TradeEvent : public Event {
+public:
+	TradeEvent(long instrument, Side side, long price, long size) :
+		instrument_(instrument), side_(side),
+		price_(price), size_(size) {}
+	long instrument_;
+	Side side_;
+	long price_;
+	long size_;
+};
+
+class MarketEvents : public MarketListener {
+public:
+	MarketEvents() {}
+
+	const std::vector<Event*> GetEvents() const {
+		return events_;
+	}
+
+	virtual void Update(OrderBook* book, bool bbo);
+
+	virtual void Trade(OrderBook* book, Side side, long price, long size);
+
+private:
+	std::vector<Event*> events_;
 };
 
 }
-
-#endif /* MarketEvents_h */
