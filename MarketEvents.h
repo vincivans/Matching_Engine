@@ -1,47 +1,100 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
-#include "MarketListener.h"
+#include "OrderListener.h"
 
 namespace Matching {
 
 class Event {
 public:
 	Event() {}
+    virtual void ProcessEvent() = 0;
 };
 
-
-
-class UpdateEvent : public Event {
+class AddEvent : public Event {
 public:
-	UpdateEvent(long instrument, bool bbo) :
-	instrument_(instrument), bbo_(bbo) {}
-	long instrument_;
-	bool bbo_;
+    AddEvent(long orderId, Side side, long price, long size) :
+    order_id_(orderId), side_(side), price_(price),
+    size_(size), msgtype_(0) {}
+    
+    virtual void ProcessEvent() {
+        std::cout<< "Message type:" << msgtype_ << " ,Add " << (side_==Buy?"Buy":"Sell") <<
+        " order#:" << order_id_ << " @$" << price_ << " vol: " << size_ <<".\n";
+    }
+    
+    long order_id_;
+    Side side_;
+    long price_;
+    long size_;
+    int msgtype_;
+};
+
+class CancelEvent : public Event {
+public:
+	CancelEvent(long order_id) :
+	order_id_(order_id), msgtype_(1) {}
+    
+    virtual void ProcessEvent() {
+        std::cout << "Message type:" << msgtype_ << " ,Cancel order#:" << order_id_ << " succeed.\n";
+    }
+    
+    long order_id_;
+    int msgtype_;
 };
 
 class TradeEvent : public Event {
 public:
-	TradeEvent(long instrument, Side side, long price, long size) :
-		instrument_(instrument), side_(side),
-		price_(price), size_(size) {}
-	long instrument_;
-	Side side_;
-	long price_;
-	long size_;
+    TradeEvent(long price, long size) :
+        price_(price), size_(size), msgtype_(2){}
+    long price_;
+    long size_;
+    int msgtype_;
+    virtual void ProcessEvent() {
+        std::cout << "Message type:" << msgtype_ << " ,Trade @:" << price_ << " vol:" << size_<<"\n";
+    }
 };
 
-class MarketEvents : public MarketListener {
+class MatchEvent : public Event {
+public:
+    MatchEvent(long restingOrderId, long incomingOrderId, Side incomingSide,
+               long price, long executedQuantity, long remainingQuantity) :
+    resting_order_id_(restingOrderId), incoming_order_id_(incomingOrderId),
+    side_(incomingSide), price_(price), executed_quantity_(executedQuantity),
+    remaining_quantity_(remainingQuantity), msgtype_(3) {}
+    
+    virtual void ProcessEvent() {
+        std::cout<< "Message type:" << msgtype_ << ",  Match.\n";
+    }
+    
+    long resting_order_id_;
+    long incoming_order_id_;
+    Side side_;
+    long price_;
+    long executed_quantity_;
+    long remaining_quantity_;
+    int msgtype_;
+};
+
+
+class MarketEvents : public OrderListener {
 public:
 	MarketEvents() {}
 
 	const std::vector<Event*> GetEvents() const {
 		return events_;
 	}
+    
+    virtual void Add(long orderId, Side side, long price, long size);
+    
+    virtual void Match(long restingOrderId, long incomingOrderId, Side incomingSide,
+                       long price, long executedQuantity, long remainingQuantity);
+    
+    virtual void Cancel(long orderId);
+    
+	//virtual void Update(OrderBook* book, bool bbo);
 
-	virtual void Update(OrderBook* book, bool bbo);
-
-	virtual void Trade(OrderBook* book, Side side, long price, long size);
+	//virtual void Trade(OrderBook* book, Side side, long price, long size);
 
 private:
 	std::vector<Event*> events_;
