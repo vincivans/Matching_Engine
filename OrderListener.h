@@ -16,7 +16,7 @@ public:
     // @param side the side of the incoming order
     // @param price the trade price
     // @param size the trade size
-    //virtual void Trade(OrderBook* orderBook, Side side, long price, long size) = 0;
+    virtual void Trade(long price, long size) = 0;
     
     
      // An event indicating that a cancel order request has taken place.

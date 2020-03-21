@@ -51,7 +51,7 @@ public:
     long size_;
     int msgtype_;
     virtual void ProcessEvent() {
-        std::cout << "Message type:" << msgtype_ << " ,Trade @:" << price_ << " vol:" << size_<<"\n";
+        std::cout << "Message type:" << msgtype_ << " ,Trade @$" << price_ << " vol:" << size_<<"\n";
     }
 };
 
@@ -64,7 +64,18 @@ public:
     remaining_quantity_(remainingQuantity), msgtype_(3) {}
     
     virtual void ProcessEvent() {
-        std::cout<< "Message type:" << msgtype_ << ",  Match.\n";
+        if(remaining_quantity_ == 0) {
+            std::cout<< "Message type:" << 4 << ", PartialFilled order#:" <<
+            incoming_order_id_ <<" left vol:" << executed_quantity_ << "\n";
+            std::cout<< "Message type:" << 3 << ", FullyFilled order#:" <<
+            resting_order_id_ <<"\n";
+        }
+        else {
+            std::cout<< "Message type:" << msgtype_ << ", FullyFilled order#:" <<
+            resting_order_id_ <<"\n";
+            std::cout<< "Message type:" << 4 << ", PartialFilled order#:" <<
+            incoming_order_id_ <<" left vol:" << remaining_quantity_ << "\n";
+        }
     }
     
     long resting_order_id_;
@@ -91,10 +102,8 @@ public:
                        long price, long executedQuantity, long remainingQuantity);
     
     virtual void Cancel(long orderId);
-    
-	//virtual void Update(OrderBook* book, bool bbo);
 
-	//virtual void Trade(OrderBook* book, Side side, long price, long size);
+	virtual void Trade(long price, long size);
 
 private:
 	std::vector<Event*> events_;

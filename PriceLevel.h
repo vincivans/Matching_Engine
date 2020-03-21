@@ -9,7 +9,7 @@
 #ifndef PriceLevel_h
 #define PriceLevel_h
 
-#include <unordered_set>
+#include <list>
 #include "Order.h"
 
 namespace Matching {
@@ -29,22 +29,22 @@ public:
     bool IsEmpty() const { return orders_.empty(); }
     
     // Get the order tree
-    std::unordered_set<Order*>& GetOrderTree() { return orders_; }
+    std::list<Order*>& GetOrderTree() { return orders_; }
     
     Order* Add(long order_id, long quantity) {
         Order* order = new Order(side_, order_id, price_, quantity);
-        orders_.emplace(order);
+        orders_.emplace_back(order);
         return order;
     }
     
-    void Delete(Order* order) {
-        orders_.erase(order);
+    void Delete() {
+        orders_.pop_front();
     }
     
 private:
     Side side_;
     long price_;
-    std::unordered_set<Order*> orders_;
+    std::list<Order*> orders_;
 };
 
 }

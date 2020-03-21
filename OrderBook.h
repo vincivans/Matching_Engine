@@ -13,7 +13,7 @@ typedef std::unordered_map<long, Order*> OrderMap;
 
 class OrderBook {
 public:
-    OrderBook(MarketEvents* listener) : listener_(listener) {}
+    OrderBook(OrderListener* listener) : listener_(listener) {}
 
     
     // Get the best bid price.
@@ -24,25 +24,14 @@ public:
     }
 
     
-    // Get a bid level size.
-    // @param price the bid price
-    // @return the bid level size
-    //long GetBidSize(long price) { return bids_[price]; }
-
-    
     // Get the best ask price.
     // @return the best ask price or zero if there are no asks
     PriceLevelPtr GetBestAskLevel() {
         if (asks_.empty()) return nullptr;
         return (asks_.begin())->second;
     }
-
-
-    // Get an ask level size.
-    // @param price the ask price
-    // @return the ask level size
-    //long GetAskSize(long price) { return asks_[price]; }
-
+    
+    
     // Enter an order to this order book
     // The incoming order is first matched against resting orders in this
     // order book. This operation results in zero or more Match events.
@@ -51,7 +40,9 @@ public:
     // triggered.
     bool Enter(long order_id, Side side, long price, long qty);
     
-    long Match(std::unordered_set<Order*>& orderlists, long order_id, Side side, long& quantity);
+    // Match orders base on the price level orders
+    // Orders would be matched base on time when price level are the same.
+    long Match(std::list<Order*>& orderlists, long order_id, Side side, long& quantity);
     
      // Cancel an order from order book.
      // An cancel event is triggered.
@@ -59,22 +50,6 @@ public:
      // @param orderId the order identifier
     void Cancel(long orderId);
 
-    /*inline
-    bool Update(Side side, long price, long quantity) {
-        std::map<long, long> levels = GetLevels(side);
-
-        long oldSize = levels[price];
-        long newSize = oldSize + quantity;
-
-        bool onBestLevel = (price == (*levels.begin()).first);
-
-        if (newSize > 0)
-            levels[price] = newSize;
-        else
-            levels.erase(price);
-
-        return onBestLevel;
-    }*/
 private:
     void BuyOrder(long order_id, long price, long qty);
     void SellOrder(long order_id, long price, long qty);
@@ -115,7 +90,7 @@ void OrderBook::BuyOrder(long order_id, long price, long qty) {
         bestLevel = GetBestAskLevel();
     }
     if(remainQuantity > 0) {
-        orders_.emplace(order_id, AddAsk(order_id, Buy, price, qty));
+        orders_.emplace(order_id, AddBid(order_id, Buy, price, qty));
         listener_->Add(order_id, Buy, price, remainQuantity);
     }
 }
@@ -126,7 +101,7 @@ void OrderBook::SellOrder(long order_id, long price, long qty) {
     PriceLevelPtr bestLevel = GetBestBidLevel();
     while(remainQuantity > 0 && bestLevel && bestLevel->GetPrice()>=price) {
         remainQuantity = Match(bestLevel->GetOrderTree(), order_id, Sell, remainQuantity);
-        if(!bestLevel) asks_.erase(bestLevel->GetPrice());
+        if(!bestLevel) bids_.erase(bestLevel->GetPrice());
         bestLevel = GetBestBidLevel();
     }
     if(remainQuantity > 0) {
@@ -136,7 +111,7 @@ void OrderBook::SellOrder(long order_id, long price, long qty) {
 }
 
 inline
-long OrderBook::Match(std::unordered_set<Order*>& orderlists, long order_id,
+long OrderBook::Match(std::list<Order*>& orderlists, long order_id,
                       Side side, long& quantity) {
     while(quantity>0 && !orderlists.empty()) {
         Order* resting = *(orderlists).begin();
@@ -151,11 +126,12 @@ long OrderBook::Match(std::unordered_set<Order*>& orderlists, long order_id,
             quantity = 0;
         }
         else {
-            orderlists.erase(orderlists.begin());
+            orderlists.pop_front();
             orders_.erase(restingId);
             //full fill
-            listener_->Match(restingId, order_id, side, price, restingQuantity, 0);
             quantity -= restingQuantity;
+            listener_->Trade(price, restingQuantity);
+            listener_->Match(restingId, order_id, side, price, quantity, 0);
         }
     }
     return quantity;
@@ -164,18 +140,28 @@ long OrderBook::Match(std::unordered_set<Order*>& orderlists, long order_id,
 
 inline
 Order* OrderBook::AddAsk(long orderId, Side side, long price, long size) {
-    if(asks_.count(price)) return *(asks_[price]->GetOrderTree()).begin();
-    PriceLevelPtr level = new PriceLevel(side, price);
-    asks_[price] = level;
+    PriceLevelPtr level = nullptr;
+    if(!asks_.count(price)) {
+        level = new PriceLevel(side, price);
+        asks_[price] = level;
+    }
+    else {
+        level = asks_[price];
+    }
     Order* order = level->Add(orderId, size);
     return order;
 }
 
 inline
 Order* OrderBook::AddBid(long orderId, Side side, long price, long size) {
-    if(bids_.count(price)) return *(bids_[price]->GetOrderTree()).begin();
-    PriceLevelPtr level = new PriceLevel(side, price);
-    bids_[price] = level;
+    PriceLevelPtr level = nullptr;
+    if(!bids_.count(price)) {
+        level = new PriceLevel(side, price);
+        bids_[price] = level;
+    }
+    else {
+        level = bids_[price];
+    }
     Order* order = level->Add(orderId, size);
     return order;
 }

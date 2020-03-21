@@ -9,7 +9,7 @@
 //#include <iostream>
 #include "OrderBook.h"
 using namespace Matching;
-static long INSTRUMENT = 1;
+static long id = 1;
 
 
 int main(int argc, const char * argv[]) {
@@ -22,7 +22,14 @@ int main(int argc, const char * argv[]) {
     market.Add(INSTRUMENT, 3, Sell, 1002,  50);
     market.Execute(2, 200);*/
     OrderBook *book = new OrderBook(me);
-    book->Enter(1, Buy, 1000, 100);
-    Event* bid = new AddEvent(1, Buy, 1000, 100);
+    book->Enter(1, Sell, 1075, 1);
+    book->Enter(2, Buy, 1000, 9);
+    book->Enter(3, Buy, 975, 30);
+    book->Enter(4, Sell, 1050, 10);
+    book->Enter(5, Buy, 950, 10);
+    book->Enter(6, Sell, 1025, 2);
+    book->Enter(7, Buy, 1000, 1);
+    book->Enter(8, Sell, 1025, 5);
+    book->Enter(9, Buy, 1050, 3);
     return 0;
 }
