@@ -1,3 +1,12 @@
+//
+//  MarketEvents.cpp
+//  Matching_Simulation
+//
+//  Created by SiranWang on 3/21/20.
+//  Copyright © 2020 SiranWang. All rights reserved.
+//
+
+
 #include "MarketEvents.h"
 
 namespace Matching {

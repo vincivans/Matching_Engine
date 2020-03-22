@@ -28,64 +28,55 @@ void MatchSimulation::Run() {
     
     std::string input;
     while(std::getline(std::cin, input)) {
-    std::vector<std::string> words;
-    split(input, " ,", words);
-    if(!words.empty()) {
-        int msg = stoi(words[0]);
-        long orderid = 0;
-        int quantity = 0, price = 0;
-        Side side;
-        switch (msg) {
-            case 0:
-                if(!is_number(words[1])) {
-                    std::cerr << "Incorrect order_id\n";
-                    break;
-                }
-                else
-                    orderid = stol(words[1]);
-                if(!is_number(words[2])) {
-                    std::cerr << "Incorrect side\n";
-                    break;
-                }
-                else
-                    side = words[2]=="0" ? Buy : Sell;
-                if(!is_number(words[3])) {
-                    std::cerr << "Incorrect quantity\n";
-                    break;
-                }
-                else {
-                    quantity = stoi(words[3]);
-                    if(quantity==0 || quantity>1000000000) {
-                        std::cerr << "Quantity should be in range [0, 1000000000]\n";
-                        break;
+        std::vector<std::string> words;
+        split(input, " ,", words);
+        if(words.size()==2 || words.size()==5) {
+            if(is_number(words[0])) {
+                int msg = stoi(words[0]);
+                long orderid = 0;
+                int quantity = 0, price = 0;
+                Side side;
+                if(msg==0 && words.size()==5) {
+                    if(!is_number(words[1]))
+                        std::cerr << "Incorrect order_id\n";
+                    else
+                        orderid = stol(words[1]);
+                    if(!is_number(words[2]))
+                        std::cerr << "Incorrect side\n";
+                    else
+                        side = words[2]=="0" ? Buy : Sell;
+                    if(!is_number(words[3]))
+                        std::cerr << "Incorrect quantity\n";
+                    else {
+                        quantity = stoi(words[3]);
+                        if(quantity==0 || quantity>1000000000)
+                            std::cerr << "Quantity should be in range [0, 1000000000]\n";
                     }
-                }
-                if(!is_number(words[4])) {
-                    std::cerr << "Incorrect price\n";
-                    break;
-                }
-                else {
-                    price = stoi(words[4]);
-                    if(price==0 || quantity>10000000) {
-                        std::cerr << "Price should be in range [0, 10000000]\n";
-                        break;
+                    if(!is_number(words[4]))
+                        std::cerr << "Incorrect price\n";
+                    else {
+                        price = stoi(words[4]);
+                        if(price==0 || price>10000000) {
+                            std::cerr << "Price should be in range [0, 10000000]\n";
+                        }
                     }
-                }
-                book->Enter(orderid, side, price, quantity);
-                break;
-            case 1:
-                if(!is_number(words[1])) {
-                    std::cerr << "Incorrect order_id\n";
-                    break;
+                    book->Enter(orderid, side, price, quantity);
+                 }
+                 else if(msg==1 && words.size()==2) {
+                    if(!is_number(words[1]))
+                        std::cerr << "Incorrect order_id\n";
+                    else
+                        orderid = stol(words[1]);
+                    book->Cancel(orderid);
+                 }
+                 else
+                    std::cerr << "Incorrect Msg format\n";
                 }
                 else
-                    orderid = stol(words[1]);
-                book->Cancel(orderid);
-                break;
-            default:
-                std::cerr << "Unknown Message types!\n";
-            }
+                    std::cerr << "Unknown message types\n";
         }
+        else
+            std::cerr << "Wrong format.\n";
     }
 }
 

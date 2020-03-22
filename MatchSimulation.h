@@ -1,13 +1,13 @@
 //
-//  MatchSimulation.hpp
+//  MatchSimulation.h
 //  Matching_Simulation
 //
 //  Created by SiranWang on 3/21/20.
 //  Copyright © 2020 SiranWang. All rights reserved.
 //
 
-#ifndef MatchSimulation_hpp
-#define MatchSimulation_hpp
+#ifndef MatchSimulation_h
+#define MatchSimulation_h
 
 #include <string>
 #include "OrderBook.h"
@@ -42,4 +42,4 @@ public:
 
 }
 
-#endif /* MatchSimulation_hpp */
+#endif /* MatchSimulation_h */

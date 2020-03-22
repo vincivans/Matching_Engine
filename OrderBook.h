@@ -1,3 +1,11 @@
+//
+//  OrderBook.h
+//  Matching_Simulation
+//
+//  Created by SiranWang on 3/21/20.
+//  Copyright © 2020 SiranWang. All rights reserved.
+//
+
 #pragma once
 
 #include <map>
@@ -12,7 +20,7 @@ typedef std::unordered_map<long, Order*> OrderMap;
 
 class OrderBook {
 public:
-    OrderBook(OrderListener* listener) : listener_(listener) {}
+    OrderBook(OrderListener* listener) : listener_(listener), matches_(0) {}
 
     
     // Get the best bid price.
@@ -28,6 +36,10 @@ public:
     PriceLevelPtr GetBestAskLevel() {
         if (asks_.empty()) return nullptr;
         return (asks_.begin())->second;
+    }
+    
+    int GetMatch() {
+        return matches_;
     }
     
     
@@ -58,7 +70,7 @@ private:
     Order* AddBid(long orderId, Side side, long price, long size);
     void DeleteOrder(Order* order);
     
-    
+    int matches_;
     PriceMap bids_;
     PriceMap asks_;
     OrderMap orders_;
@@ -124,6 +136,7 @@ long OrderBook::Match(std::list<Order*>& orderlists, long order_id,
         if(restingQuantity > quantity) {
             resting->Reduce(quantity);
             //partial fill
+            ++matches_;
             listener_->Trade(price, quantity);
             listener_->Match(restingId, order_id, side, price,
                             quantity,resting->GetRemainingQuantity());
