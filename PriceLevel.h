@@ -10,6 +10,7 @@
 #define PriceLevel_h
 
 #include <list>
+#include <unordered_map>
 #include "Order.h"
 
 namespace Matching {
@@ -31,21 +32,28 @@ public:
     // Get the order tree
     std::list<Order*>& GetOrderTree() { return orders_; }
     
-    Order* Add(long order_id, long quantity) {
-        Order* order = new Order(side_, order_id, price_, quantity);
-        orders_.emplace_back(order);
-        return order;
-    }
+    Order* Add(long order_id, long quantity);
     
-    void Delete() {
-        orders_.pop_front();
+    void Delete(long order_id) {
+        auto todelete = prev(m_iter[order_id]);
+        orders_.erase(todelete);
+        m_iter.erase(order_id);
     }
     
 private:
     Side side_;
     long price_;
     std::list<Order*> orders_;
+    std::unordered_map<long, std::list<Order*>::iterator> m_iter;
 };
+
+inline
+Order* PriceLevel::Add(long order_id, long quantity) {
+       Order* order = new Order(side_, order_id, price_, quantity);
+       orders_.emplace_back(order);
+       m_iter[order_id] = orders_.end();
+       return order;
+}
 
 }
 

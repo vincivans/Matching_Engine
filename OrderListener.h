@@ -5,12 +5,6 @@ namespace Matching {
 
 class OrderListener {
 public:
-    //An event indicating that an order book has changed.
-    //@param book the order book
-    //@param bbo true if the best bid and offer (BBO) has changed, otherwise false
-    //virtual void Update(OrderBook* orderBook, bool bbo) = 0;
-
-
     // An event indicating that a trade has taken place.
     // @param book the order book
     // @param side the side of the incoming order

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <map>
-#include <unordered_map>
 #include "PriceLevel.h"
 #include "MarketEvents.h"
 
@@ -33,28 +32,31 @@ public:
     
     
     // Enter an order to this order book
+    // O(1) to delete an filled order from order book
     // The incoming order is first matched against resting orders in this
     // order book. This operation results in zero or more Match events.
     // If the remaining quantity is not zero after the matching operation,
-    // the remaining quantity is added to this order book and an Add event is
-    // triggered.
+    // the remaining quantity is added to this order book and an Add event is triggered.
     bool Enter(long order_id, Side side, long price, long qty);
     
     // Match orders base on the price level orders
     // Orders would be matched base on time when price level are the same.
+    //
     long Match(std::list<Order*>& orderlists, long order_id, Side side, long& quantity);
     
      // Cancel an order from order book.
+     // O(1) to delete an order from order book
      // An cancel event is triggered.
      // If the order identifier is unknown, do nothing.
      // @param orderId the order identifier
-    void Cancel(long orderId);
+     void Cancel(long orderId);
 
 private:
     void BuyOrder(long order_id, long price, long qty);
     void SellOrder(long order_id, long price, long qty);
     Order* AddAsk(long orderId, Side side, long price, long size);
     Order* AddBid(long orderId, Side side, long price, long size);
+    void DeleteOrder(Order* order);
     
     
     PriceMap bids_;
@@ -65,17 +67,18 @@ private:
 
 inline
 bool OrderBook::Enter(long order_id, Side side, long price, long qty) {
-       if(orders_.count(order_id)) return false;
-       if(side == Buy)
-           BuyOrder(order_id, price, qty);
-       else
-           SellOrder(order_id, price, qty);
-       return true;
+    if(orders_.count(order_id)) return false;
+    if(side == Buy)
+        BuyOrder(order_id, price, qty);
+    else
+        SellOrder(order_id, price, qty);
+    return true;
 }
 
 inline
 void OrderBook::Cancel(long orderId) {
     if(!orders_.count(orderId)) return;
+    DeleteOrder(orders_[orderId]);
     orders_.erase(orderId);
     listener_->Cancel(orderId);
 }
@@ -86,7 +89,7 @@ void OrderBook::BuyOrder(long order_id, long price, long qty) {
     PriceLevelPtr bestLevel = GetBestAskLevel();
     while(remainQuantity > 0 && bestLevel && bestLevel->GetPrice()<=price) {
         remainQuantity = Match(bestLevel->GetOrderTree(), order_id, Buy, remainQuantity);
-        if(!bestLevel) asks_.erase(bestLevel->GetPrice());
+        if(bestLevel->IsEmpty()) asks_.erase(bestLevel->GetPrice());
         bestLevel = GetBestAskLevel();
     }
     if(remainQuantity > 0) {
@@ -101,7 +104,7 @@ void OrderBook::SellOrder(long order_id, long price, long qty) {
     PriceLevelPtr bestLevel = GetBestBidLevel();
     while(remainQuantity > 0 && bestLevel && bestLevel->GetPrice()>=price) {
         remainQuantity = Match(bestLevel->GetOrderTree(), order_id, Sell, remainQuantity);
-        if(!bestLevel) bids_.erase(bestLevel->GetPrice());
+        if(bestLevel->IsEmpty()) bids_.erase(bestLevel->GetPrice());
         bestLevel = GetBestBidLevel();
     }
     if(remainQuantity > 0) {
@@ -121,6 +124,7 @@ long OrderBook::Match(std::list<Order*>& orderlists, long order_id,
         if(restingQuantity > quantity) {
             resting->Reduce(quantity);
             //partial fill
+            listener_->Trade(price, quantity);
             listener_->Match(restingId, order_id, side, price,
                             quantity,resting->GetRemainingQuantity());
             quantity = 0;
@@ -164,6 +168,24 @@ Order* OrderBook::AddBid(long orderId, Side side, long price, long size) {
     }
     Order* order = level->Add(orderId, size);
     return order;
+}
+
+inline
+void OrderBook::DeleteOrder(Order *order) {
+    Side side = order->GetSide();
+    long price = order->GetPrice();
+    if(side == Buy) {
+        PriceLevelPtr level = bids_[price];
+        level->Delete(order->GetId());
+        if(level->IsEmpty())
+            bids_.erase(price);
+    }
+    else {
+        PriceLevelPtr level = asks_[price];
+        level->Delete(order->GetId());
+        if(level->IsEmpty())
+            asks_.erase(price);
+    }
 }
 
 

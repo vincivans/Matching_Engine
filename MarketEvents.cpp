@@ -18,9 +18,26 @@ void MarketEvents::Add(long orderId, Side side, long price, long size) {
 }
 
 void MarketEvents::Match(long restingOrderId, long incomingOrderId, Side incomingSide, long price, long executedQuantity, long remainingQuantity) {
-    events_.push_back(new MatchEvent(restingOrderId, incomingOrderId, incomingSide, price,
-                                     executedQuantity, remainingQuantity));
-    events_.back()->ProcessEvent();
+    if(remainingQuantity == 0) {
+        if(executedQuantity != remainingQuantity) {
+            events_.push_back(new PartialFillEvent(incomingOrderId, executedQuantity));
+            events_.back()->ProcessEvent();
+            events_.push_back(new FillEvent(restingOrderId));
+            events_.back()->ProcessEvent();
+        }
+        else {
+            events_.push_back(new FillEvent(incomingOrderId));
+            events_.back()->ProcessEvent();
+            events_.push_back(new FillEvent(restingOrderId));
+            events_.back()->ProcessEvent();
+        }
+    }
+    else {
+        events_.push_back(new FillEvent(incomingOrderId));
+        events_.back()->ProcessEvent();
+        events_.push_back(new PartialFillEvent(restingOrderId, remainingQuantity));
+        events_.back()->ProcessEvent();
+    }
 }
 
 }
